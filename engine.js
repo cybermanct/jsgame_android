@@ -4,6 +4,7 @@ class Renderer{
     //массив объектов мира
     this.cams=[];
     //массив с камерами
+    this.selectedCam=0;
   }
 
   addObject(object){
@@ -21,17 +22,54 @@ class Renderer{
   addCam(camera){
     //добавление камеры
     let cams = this.cams.push(camera);
-    //возвращает колличество камер
-    return cams;
+    //возвращает id камеры
+    return cams-1;
   }
 
-  countDrawbleObjects(camera){
+  countDrawbleObjects(cameraId){
     //получить список id отрисовываемых объектов
-    
+    let camera=this.cams[cameraId];
+    //получаем камеру
+    let drawbleObjects=[];
+    //создаём массив объектов
+    let cameraPoints=[];
+    //создаём массив вершин камеры
+    cameraPoints[0]=new Dot(camera.x, camera.y);
+    cameraPoints[1]=new Dot(camera.x+camera.width, camera.y);
+    cameraPoints[2]=new Dot(camera.x, camera.y+camera.height);
+    cameraPoints[3]=new Dot(camera.x+camera.width, camera.y+camera.height);
+    //считаем все вершины
+    for (let i=0; i<this.objects.length, i++){
+      //перебор всех элементов
+      let objectPoints=[];
+      //создаём массив вершин объекта
+      objectPoints[0]=new Dot(this.objects[i].x, this.objects[i].y);
+      objectPoints[1]=new Dot(this.objects[i].x+this.objects[i].width, this.objects[i].y);
+      objectPoints[2]=new Dot(this.objects[i].x, this.objects[i].y+this.objects[i].height);
+      objectPoints[3]=new Dot(this.objects[i].x+this.objects[i].width, this.objects[i].y+this.objects[i].height);
+      //считаем все вершины
+      for (let k=0; k<4; k++){
+        //проверяем все вершины объекта на принадлежность к отрисовываемой области
+        if(objectPoints[k].x>cameraPoints[0].x && objectPoints[k].x<cameraPoints[1].x && objectPoints[k].y>cameraPoints[0].y && objectPoints[k].y<cameraPoints[2].y){
+          //если хоть одна вершина попадает на отрисовываемую область, то...
+          drawbleObjects.push(i);
+          //..добавляем её в список
+          k=4;
+          //и закрываем цикл
+        }
+      }
+    }
+    return drawbleObjects;
   }
 
   update(){
     //отрисовка
+    drawbleObjects=this.countDrawbleObjects(this.selectedCam);
+    //получаем список рисуемых объектов
+    for(i=0; i<drawbleObjects.length; i++){
+      //отрисовываем объекты
+      this.objects[drawbleObjects[i]].draw();
+    }
   }
 }
 
@@ -101,5 +139,12 @@ class Camera{
     this.height=height;
     //ширина и высота изображения
     //объекты, не попадающие на камеру, не отрисовываются
+  }
+}
+
+class Dot{
+  constructor(x, y){
+    this.x=x;
+    this.y=y;
   }
 }
