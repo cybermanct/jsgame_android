@@ -5,6 +5,7 @@ class Renderer{
     this.cams=[];
     //массив с камерами
     this.selectedCam=0;
+    this.gravity=0.05;
   }
 
   addObject(object){
@@ -12,6 +13,10 @@ class Renderer{
     let id=this.objects.push(object);
     //возвращает id добавленного объекта
     return id-1;
+  }
+
+  setGravity(power){
+    this.gravity=power;
   }
 
   deleteObject(id){
@@ -24,6 +29,22 @@ class Renderer{
     let cams = this.cams.push(camera);
     //возвращает id камеры
     return cams-1;
+  }
+
+  getDotObjects(dot, renderer, ids){
+    //получить объекты на точке Dot
+    //аргумент dot принимает объект Dot(точка, в которой мы ищем объекты)
+    //ids получает массив id объектов в renderer, среди которых мы ищем
+    //такой массив возвращает countDrawbleObjects, однако его можно составить и самому
+    let dotObjects=[];
+    for(let i=0; i<ids.length; i++){
+      let countObject=renderer.objects[ids[i]];
+      if (dot.x>countObject.x && dot.x<countObject.x+countObject.width && dot.y>countObject.y && dot.y<countObject.height){
+        dotObjects.push(ids[i]);
+      }
+    }
+    //возвращает список id рисуемых объектов
+    return dotObjects;
   }
 
   countDrawbleObjects(cameraId){
@@ -39,7 +60,7 @@ class Renderer{
     cameraPoints[2]=new Dot(camera.x, camera.y+camera.height);
     cameraPoints[3]=new Dot(camera.x+camera.width, camera.y+camera.height);
     //считаем все вершины
-    for (let i=0; i<this.objects.length, i++){
+    for (let i=0; i<this.objects.length; i++){
       //перебор всех элементов
       let objectPoints=[];
       //создаём массив вершин объекта
@@ -62,13 +83,156 @@ class Renderer{
     return drawbleObjects;
   }
 
-  update(){
+  update(ctx, renderer){
     //отрисовка
-    drawbleObjects=this.countDrawbleObjects(this.selectedCam);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let drawbleObjects=renderer.countDrawbleObjects(this.selectedCam);
+    //console.log(drawbleObjects);
     //получаем список рисуемых объектов
-    for(i=0; i<drawbleObjects.length; i++){
-      //отрисовываем объекты
-      this.objects[drawbleObjects[i]].draw();
+    for(let i=0; i<drawbleObjects.length; i++){
+      if(renderer.objects[drawbleObjects[i]].physics){
+        //если гравитация включена
+        renderer.objects[drawbleObjects[i]].accelerationY+=renderer.gravity;
+        //прибавляем ускорение по оси x объекту
+      }
+      renderer.objects[drawbleObjects[i]].speedX+=renderer.objects[drawbleObjects[i]].accelerationX;
+      renderer.objects[drawbleObjects[i]].speedY+=renderer.objects[drawbleObjects[i]].accelerationY;
+      //считаем скорость объекта
+      if(renderer.objects[drawbleObjects[i]].collision){
+        //если коллизия включена
+
+        if(renderer.objects[drawbleObjects[i]].speedX>0){
+          //если объект двигается вправо...
+          let dots=[];
+          dots[0]=new Dot(renderer.objects[drawbleObjects[i]].x+renderer.objects[drawbleObjects[i]].width, renderer.objects[drawbleObjects[i]].y);
+          dots[1]=new Dot(renderer.objects[drawbleObjects[i]].x+renderer.objects[drawbleObjects[i]].width, renderer.objects[drawbleObjects[i]].y+renderer.objects[drawbleObjects[i]].height/2);
+          dots[2]=new Dot(renderer.objects[drawbleObjects[i]].x+renderer.objects[drawbleObjects[i]].width, renderer.objects[drawbleObjects[i]].y+renderer.objects[drawbleObjects[i]].height);
+          //...создаём 3 точки коллизии(на правой грани объекта)
+          let countbleObjects=renderer.countDrawbleObjects(this.selectedCam);
+          //получаем список объектов в поле зрения
+          let objectsWithCollision=[];
+          //создаём массив объектов с включенной коллизией
+          for(let i=0; i<countbleObjects.length; i++){
+            //проходимся по всем объектам в поле зрения
+            if(renderer.objects[countbleObjects[i]].collision){
+              //и ищем те, у которых включена коллизия
+              objectsWithCollision.push(countbleObjects[i]);
+            }
+          }
+          let objs=[];
+          objs[0]=renderer.getDotObjects(dots[0], renderer, objectsWithCollision);
+          objs[1]=renderer.getDotObjects(dots[1], renderer, objectsWithCollision);
+          objs[2]=renderer.getDotObjects(dots[2], renderer, objectsWithCollision);
+          console.log(objs[0]);
+          //составляем список объектов на точках, у которых включена коллизия
+          if(objs[0].length>0 || objs[1].length>0 || objs[2].length>0){
+            //если в одном из них есть объект, мы останавливаем объект по оси X
+            renderer.objects[drawbleObjects[i]].speedX=0;
+            renderer.objects[drawbleObjects[i]].accelerationX=0;
+          }
+        }
+
+        if(renderer.objects[drawbleObjects[i]].speedX<0){
+          //если объект двигается влево
+          let dots=[];
+          dots[0]=new Dot(renderer.objects[drawbleObjects[i]].x, renderer.objects[drawbleObjects[i]].y);
+          dots[1]=new Dot(renderer.objects[drawbleObjects[i]].x, renderer.objects[drawbleObjects[i]].y+renderer.objects[drawbleObjects[i]].height/2);
+          dots[2]=new Dot(renderer.objects[drawbleObjects[i]].x, renderer.objects[drawbleObjects[i]].y+renderer.objects[drawbleObjects[i]].height);
+          //...создаём 3 точки коллизии(на правой грани объекта)
+          let countbleObjects=renderer.countDrawbleObjects(this.selectedCam);
+          //получаем список объектов в поле зрения
+          let objectsWithCollision=[];
+          //создаём массив объектов с включенной коллизией
+          for(let i=0; i<countbleObjects.length; i++){
+            //проходимся по всем объектам в поле зрения
+            if(renderer.objects[countbleObjects[i]].collision){
+              //и ищем те, у которых включена коллизия
+              objectsWithCollision.push(countbleObjects[i]);
+            }
+          }
+          let objs=[];
+          objs[0]=renderer.getDotObjects(dots[0], renderer, objectsWithCollision);
+          objs[1]=renderer.getDotObjects(dots[1], renderer, objectsWithCollision);
+          objs[2]=renderer.getDotObjects(dots[2], renderer, objectsWithCollision);
+          //составляем список объектов на точках, у которых включена коллизия
+          if(objs[0].length>0 || objs[1].length>0 || objs[2].length>0){
+            //если в одном из них есть объект, мы останавливаем объект по оси X
+            renderer.objects[drawbleObjects[i]].speedX=0;
+            renderer.objects[drawbleObjects[i]].accelerationX=0;
+          }
+        }
+
+        if(renderer.objects[drawbleObjects[i]].speedY>0){
+          //если объект двигается вниз...
+          let dots=[];
+          dots[0]=new Dot(renderer.objects[drawbleObjects[i]].x, renderer.objects[drawbleObjects[i]].y+renderer.objects[drawbleObjects[i]].height);
+          dots[1]=new Dot(renderer.objects[drawbleObjects[i]].x+renderer.objects[drawbleObjects[i]].width/2, renderer.objects[drawbleObjects[i]].y+renderer.objects[drawbleObjects[i]].height);
+          dots[2]=new Dot(renderer.objects[drawbleObjects[i]].x+renderer.objects[drawbleObjects[i]].width, renderer.objects[drawbleObjects[i]].y+renderer.objects[drawbleObjects[i]].height);
+          //...создаём 3 точки коллизии(на правой грани объекта)
+          console.log(1);
+          let countbleObjects=renderer.countDrawbleObjects(this.selectedCam);
+          //получаем список объектов в поле зрения
+          let objectsWithCollision=[];
+          //создаём массив объектов с включенной коллизией
+          for(let i=0; i<countbleObjects.length; i++){
+            //проходимся по всем объектам в поле зрения
+            if(renderer.objects[countbleObjects[i]].collision){
+              //и ищем те, у которых включена коллизия
+              objectsWithCollision.push(countbleObjects[i]);
+            }
+          }
+          console.log(objectsWithCollision);
+          let objs=[];
+          objs[0]=renderer.getDotObjects(dots[0], renderer, objectsWithCollision);
+          objs[1]=renderer.getDotObjects(dots[1], renderer, objectsWithCollision);
+          objs[2]=renderer.getDotObjects(dots[2], renderer, objectsWithCollision);
+          console.log(objs[1]);
+          console.log(objs[0].length);
+          //составляем список объектов на точках, у которых включена коллизия
+          if(objs[0].length>0 || objs[1].length>0 || objs[2].length>0){
+            //если в одном из них есть объект, мы останавливаем объект по оси Y
+            console.log(3);
+            renderer.objects[drawbleObjects[i]].speedY=0;
+            renderer.objects[drawbleObjects[i]].accelerationY=0;
+          }
+        }
+
+        if(renderer.objects[drawbleObjects[i]].speedY<0){
+          //если объект двигается вверх
+          let dots=[];
+          dots[0]=new Dot(renderer.objects[drawbleObjects[i]].x, renderer.objects[drawbleObjects[i]].y);
+          dots[1]=new Dot(renderer.objects[drawbleObjects[i]].x+renderer.objects[drawbleObjects[i]].width/2, renderer.objects[drawbleObjects[i]].y);
+          dots[2]=new Dot(renderer.objects[drawbleObjects[i]].x+renderer.objects[drawbleObjects[i]].width, renderer.objects[drawbleObjects[i]].y);
+          //...создаём 3 точки коллизии(на правой грани объекта)
+          let countbleObjects=renderer.countDrawbleObjects(this.selectedCam);
+          //получаем список объектов в поле зрения
+          let objectsWithCollision=[];
+          //создаём массив объектов с включенной коллизией
+          for(let i=0; i<countbleObjects.length; i++){
+            //проходимся по всем объектам в поле зрения
+            if(renderer.objects[countbleObjects[i]].collision){
+              //и ищем те, у которых включена коллизия
+              objectsWithCollision.push(countbleObjects[i]);
+            }
+          }
+          let objs=[];
+          objs[0]=renderer.getDotObjects(dots[0], renderer, objectsWithCollision);
+          objs[1]=renderer.getDotObjects(dots[1], renderer, objectsWithCollision);
+          objs[2]=renderer.getDotObjects(dots[2], renderer, objectsWithCollision);
+          //составляем список объектов на точках, у которых включена коллизия
+          if(objs[0].length>0 || objs[1].length>0 || objs[2].length>0){
+            //если в одном из них есть объект, мы останавливаем объект по оси X
+            renderer.objects[drawbleObjects[i]].speedY=0;
+            renderer.objects[drawbleObjects[i]].accelerationY=0;
+          }
+        }
+
+      }
+      let x=renderer.objects[drawbleObjects[i]].x-this.cams[this.selectedCam].x;
+      let y=renderer.objects[drawbleObjects[i]].y-this.cams[this.selectedCam].y;
+      renderer.objects[drawbleObjects[i]].y+=renderer.objects[drawbleObjects[i]].speedY;
+      renderer.objects[drawbleObjects[i]].x+=renderer.objects[drawbleObjects[i]].speedX;
+      renderer.objects[drawbleObjects[i]].draw(ctx, x, y);
     }
   }
 }
@@ -88,6 +252,7 @@ class GameObject{
     this.anims=[];
     this.anims['default']=new Image();
     this.anims['default'].src=texture;
+    this.texture=this.anims['default'];
     //аргумент texture содержит в себе текстовое значение(путь к спрайту)
     this.animated=animated;
     //булево значение, определяющее, имеет объект анимации или нет
@@ -96,6 +261,10 @@ class GameObject{
     this.frame=0;
     //кадр анимации
     this.drawble=true;
+    this.speedX=0;
+    this.speedY=0;
+    this.accelerationX=0;
+    this.accelerationY=0;
   }
 
   addAnimation(animation){
@@ -103,9 +272,9 @@ class GameObject{
     this.anims[animation.name]=animation;
   }
 
-  draw(ctx){
+  draw(ctx, x, y){
     ctx.beginPath();
-    ctx.drawImage(this.texture, this.x, this.y, this.width, this.height);
+    ctx.drawImage(this.texture, x, y, this.width, this.height);
     ctx.closePath();
   }
 }
@@ -148,3 +317,5 @@ class Dot{
     this.y=y;
   }
 }
+
+console.log('complete');
