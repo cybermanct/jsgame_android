@@ -277,7 +277,7 @@ class GameObject { //почему они в коде после его выпо�
     ctx.beginPath();
     ctx.drawImage(this.texture, x, y, this.width, this.height);
     ctx.closePath();
-  }
+  } 
 }
 
 class Animation {
